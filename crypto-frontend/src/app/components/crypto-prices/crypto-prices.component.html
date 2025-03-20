@@ -1,0 +1,21 @@
+<mat-toolbar color="primary">
+  <span>Crypto Prices</span>
+</mat-toolbar>
+
+<div class="container">
+  <mat-card>
+    <mat-card-title>Live Cryptocurrency Prices</mat-card-title>
+    <mat-card-content *ngIf="priceValues; else loading">
+      <p><strong>TON/USDT:</strong> {{ priceValues['TON/USDT'] | number:'1.2-2' }}</p>
+      <p><strong>USDT/TON:</strong> {{ priceValues['USDT/TON'] | number:'1.2-2' }}</p>
+    </mat-card-content>
+
+    <ng-template #loading>
+      <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+    </ng-template>
+
+    <mat-card-actions>
+      <button mat-raised-button color="primary" (click)="fetchPrices()">Refresh</button>
+    </mat-card-actions>
+  </mat-card>
+</div>
