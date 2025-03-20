@@ -4,7 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { Repository } from 'typeorm';
 import { CryptoEntity } from './crypto.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { CACHE_MANAGER } from '@nestjs/cache-manager'; // ✅ Correct import
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { of } from 'rxjs';
 import { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
@@ -40,7 +40,7 @@ describe('CryptoService', () => {
           useValue: mockCryptoRepository,
         },
         {
-          provide: CACHE_MANAGER, // ✅ Use correct NestJS cache provider
+          provide: CACHE_MANAGER,
           useValue: cacheManager,
         },
         {
@@ -70,7 +70,7 @@ describe('CryptoService', () => {
       status: 200,
       statusText: 'OK',
       headers: {},
-      config: {} as InternalAxiosRequestConfig, // ✅ Fix applied here
+      config: {} as InternalAxiosRequestConfig,
     };
 
     jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
@@ -102,19 +102,19 @@ describe('CryptoService', () => {
 
     const result = await service.getPrices();
     expect(result).toEqual({ 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 });
-    expect(httpService.get).not.toHaveBeenCalled(); // ✅ Ensure API was not called
+    expect(httpService.get).not.toHaveBeenCalled();
   });
 
   it('should retrieve historical prices from the database', async () => {
     const historicalPrices: CryptoEntity[] = [
       {
         id: 1,
-        pair: 'TON/USDT', // ✅ Added missing field
-        price: 3.5, // ✅ Added missing field
+        pair: 'TON/USDT',
+        price: 3.5,
         tonPrice: 3.5,
         usdtPrice: 1,
         updatedAt: new Date(),
-      } as CryptoEntity, // ✅ Cast to `CryptoEntity`
+      } as CryptoEntity,
     ];
 
     jest.spyOn(cryptoRepository, 'find').mockResolvedValue(historicalPrices);
@@ -132,7 +132,7 @@ describe('CryptoService', () => {
       status: 200,
       statusText: 'OK',
       headers: {},
-      config: {} as InternalAxiosRequestConfig, // ✅ Fix applied here
+      config: {} as InternalAxiosRequestConfig,
     };
 
     jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));

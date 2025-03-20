@@ -9,10 +9,10 @@ describe('HistoricalPricesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HistoricalPricesComponent], // ✅ Standalone component import
+      imports: [HistoricalPricesComponent],
       providers: [
-        CryptoService, // ✅ Provide CryptoService
-        provideHttpClient() // ✅ Provide HttpClient properly
+        CryptoService,
+        provideHttpClient()
       ],
     }).compileComponents();
 

@@ -16,12 +16,12 @@ describe('AppComponent', () => {
       imports: [
         CommonModule,
         RouterModule,
-        CryptoPricesComponent, // ✅ Include standalone components
+        CryptoPricesComponent,
         HistoricalPricesComponent,
       ],
       providers: [
-        ...appConfig.providers, // ✅ Use `appConfig.providers` instead of `ApplicationConfig`
-        provideRouter([]), // ✅ Mock router for standalone
+        ...appConfig.providers,
+        provideRouter([]),
       ],
     }).compileComponents();
 

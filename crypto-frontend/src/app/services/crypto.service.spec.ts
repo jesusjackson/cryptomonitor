@@ -11,8 +11,8 @@ describe('CryptoService', () => {
     await TestBed.configureTestingModule({
       providers: [
         CryptoService,
-        provideHttpClient(withFetch()), // ✅ Correct modern HTTP client
-        provideHttpClientTesting(), // ✅ Modern HTTP testing module
+        provideHttpClient(withFetch()),
+        provideHttpClientTesting(),
       ],
     }).compileComponents();
 
@@ -21,7 +21,7 @@ describe('CryptoService', () => {
   });
 
   afterEach(() => {
-    httpMock.verify(); // ✅ Ensure no outstanding requests
+    httpMock.verify();
   });
 
   it('should be created', () => {
@@ -37,7 +37,7 @@ describe('CryptoService', () => {
 
     const req = httpMock.expectOne('http://localhost:3000/crypto/prices');
     expect(req.request.method).toBe('GET');
-    req.flush(mockResponse); // ✅ Simulate API response
+    req.flush(mockResponse);
   });
 
   it('should fetch historical cryptocurrency prices', () => {

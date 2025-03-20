@@ -17,7 +17,6 @@ describe('CryptoPricesComponent', () => {
   beforeEach(async () => {
     cryptoServiceMock = jasmine.createSpyObj<CryptoService>('CryptoService', ['getLivePrices']);
 
-    // ✅ Ensure `getLivePrices()` always returns an observable (prevents `subscribe` error)
     cryptoServiceMock.getLivePrices.and.returnValue(of({ 'TON/USDT': 2, 'USDT/TON': 0.5 }));
 
     await TestBed.configureTestingModule({
@@ -27,11 +26,11 @@ describe('CryptoPricesComponent', () => {
         MatToolbarModule,
         MatProgressSpinnerModule,
         MatButtonModule,
-        CryptoPricesComponent, // ✅ Use standalone component import
+        CryptoPricesComponent,
       ],
       providers: [
         { provide: CryptoService, useValue: cryptoServiceMock },
-        provideHttpClient(withFetch()), // ✅ Modern HTTP client setup
+        provideHttpClient(withFetch()),
       ],
     }).compileComponents();
 
