@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: nestjs-fastify-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=crypto_db
+      - COINMARKETCAP_API_KEY=${COINMARKETCAP_API_KEY}
+    networks:
+      - app_network
+
+  db:
+    image: postgres:13
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: crypto_db
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
