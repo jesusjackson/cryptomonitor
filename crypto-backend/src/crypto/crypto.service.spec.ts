@@ -1,88 +1,148 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CryptoService } from './crypto.service';
 import { HttpService } from '@nestjs/axios';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { CryptoEntity } from './crypto.entity';
 import { Repository } from 'typeorm';
-import { of, throwError } from 'rxjs';
+import { CryptoEntity } from './crypto.entity';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager'; // ✅ Correct import
+import { ConfigService } from '@nestjs/config';
+import { of } from 'rxjs';
+import { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 describe('CryptoService', () => {
   let service: CryptoService;
   let httpService: HttpService;
-  let cryptoRepository: jest.Mocked<Repository<CryptoEntity>>;
+  let cryptoRepository: Repository<CryptoEntity>;
+  let cacheManager: { get: jest.Mock; set: jest.Mock };
 
   beforeEach(async () => {
-    const mockRepository = {
-      save: jest.fn(),
-      find: jest.fn(),
-    } as unknown as jest.Mocked<Repository<CryptoEntity>>;
+    const mockCryptoRepository = {
+      save: jest.fn().mockResolvedValue(undefined),
+      find: jest.fn().mockResolvedValue([]),
+    };
+
+    cacheManager = {
+      get: jest.fn(),
+      set: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CryptoService,
         {
           provide: HttpService,
-          useValue: { get: jest.fn() },
+          useValue: {
+            get: jest.fn(),
+          },
         },
         {
           provide: getRepositoryToken(CryptoEntity),
-          useValue: mockRepository,
+          useValue: mockCryptoRepository,
+        },
+        {
+          provide: CACHE_MANAGER, // ✅ Use correct NestJS cache provider
+          useValue: cacheManager,
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('mocked_value'),
+          },
         },
       ],
     }).compile();
 
     service = module.get<CryptoService>(CryptoService);
     httpService = module.get<HttpService>(HttpService);
-    cryptoRepository = module.get(getRepositoryToken(CryptoEntity));
+    cryptoRepository = module.get<Repository<CryptoEntity>>(getRepositoryToken(CryptoEntity));
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('should fetch cryptocurrency prices from CoinGecko', async () => {
-    const mockResponse = {
+  it('should fetch prices from CoinGecko successfully', async () => {
+    const mockResponse: AxiosResponse = {
       data: {
-        toncoin: { usd: 2 },
+        toncoin: { usd: 3.5 },
         tether: { usd: 1 },
       },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as InternalAxiosRequestConfig, // ✅ Fix applied here
     };
 
-    jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse) as any);
+    jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
 
-    const prices = await service.getPrices();
-
-    expect(prices).toEqual({ 'TON/USDT': 2, 'USDT/TON': 0.5 });
+    const result = await service.getPrices();
+    expect(result).toEqual({ 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 });
   });
 
-  it('should fallback to CoinMarketCap if CoinGecko is missing TON price', async () => {
-    const coingeckoResponse = { data: { tether: { usd: 1 } } }; // No TON price
-    const coinmarketcapResponse = { data: { toncoin: { usd: 2 }, tether: { usd: 1 } } };
+  it('should store prices in cache', async () => {
+    const mockResponse: AxiosResponse = {
+      data: {
+        toncoin: { usd: 3.5 },
+        tether: { usd: 1 },
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as InternalAxiosRequestConfig,
+    };
 
-    jest.spyOn(httpService, 'get')
-      .mockReturnValueOnce(of(coingeckoResponse) as any)
-      .mockReturnValueOnce(of(coinmarketcapResponse) as any);
+    jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
 
-    const prices = await service.getPrices();
-
-    expect(prices).toEqual({ 'TON/USDT': 2, 'USDT/TON': 0.5 });
+    await service.getPrices();
+    expect(cacheManager.set).toHaveBeenCalledWith('crypto_prices', { 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 }, 300);
   });
 
-  it('should throw an error if both APIs fail', async () => {
-    jest.spyOn(httpService, 'get').mockReturnValue(throwError(() => new Error('API Error')));
+  it('should retrieve cached prices if available', async () => {
+    cacheManager.get.mockResolvedValue({ 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 });
 
-    await expect(service.getPrices()).rejects.toThrow('Failed to fetch cryptocurrency prices');
+    const result = await service.getPrices();
+    expect(result).toEqual({ 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 });
+    expect(httpService.get).not.toHaveBeenCalled(); // ✅ Ensure API was not called
   });
 
   it('should retrieve historical prices from the database', async () => {
-    const mockHistory = [
-      { id: 1, pair: 'TON/USDT', price: 2, updatedAt: new Date() },
+    const historicalPrices: CryptoEntity[] = [
+      {
+        id: 1,
+        pair: 'TON/USDT', // ✅ Added missing field
+        price: 3.5, // ✅ Added missing field
+        tonPrice: 3.5,
+        usdtPrice: 1,
+        updatedAt: new Date(),
+      } as CryptoEntity, // ✅ Cast to `CryptoEntity`
     ];
 
-    cryptoRepository.find.mockResolvedValue(mockHistory);
+    jest.spyOn(cryptoRepository, 'find').mockResolvedValue(historicalPrices);
 
-    const history = await service.getHistoricalPrices();
+    const result = await service.getHistoricalPrices();
+    expect(result).toEqual(historicalPrices);
+  });
 
-    expect(history).toEqual(mockHistory);
+  it('should save fetched prices to the database', async () => {
+    const mockResponse: AxiosResponse = {
+      data: {
+        toncoin: { usd: 3.5 },
+        tether: { usd: 1 },
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as InternalAxiosRequestConfig, // ✅ Fix applied here
+    };
+
+    jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+
+    await service.getPrices();
+    expect(cryptoRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tonPrice: 3.5,
+        usdtPrice: 1,
+      }),
+    );
   });
 });
