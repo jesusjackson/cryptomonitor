@@ -1,4 +1,4 @@
-import { Component, effect, OnInit, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import {
   MatCell,
