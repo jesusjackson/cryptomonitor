@@ -1,4 +1,4 @@
-import { Component, OnInit, WritableSignal, signal } from '@angular/core';
+import { Component, WritableSignal, signal, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CryptoService } from '../../services/crypto.service';
 import { MatCardModule } from '@angular/material/card';
@@ -19,14 +19,15 @@ import { MatButtonModule } from '@angular/material/button';
     MatButtonModule,
   ],
 })
-export class CryptoPricesComponent implements OnInit {
-  // Your existing signal property
+export class CryptoPricesComponent {
+  private cryptoService = inject(CryptoService);
+
   prices: WritableSignal<{ 'TON/USDT': number; 'USDT/TON': number } | null> = signal(null);
 
-  constructor(private cryptoService: CryptoService) {}
-
-  ngOnInit(): void {
-    this.fetchPrices();
+  constructor() {
+    effect(() => {
+      this.fetchPrices();
+    });
   }
 
   fetchPrices(): void {
@@ -39,8 +40,9 @@ export class CryptoPricesComponent implements OnInit {
     });
   }
 
-  // New getter to return the underlying value of the signal.
-  get priceValues(): { 'TON/USDT': number; 'USDT/TON': number } | null {
+  get priceValues(): Record<string, number> | null {
     return this.prices();
   }
+
+  protected readonly Object = Object;
 }

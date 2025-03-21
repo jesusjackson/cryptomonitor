@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, effect, OnInit, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import {
   MatCell,
@@ -31,16 +31,21 @@ import { MatToolbarModule } from '@angular/material/toolbar';
     MatTableModule
   ],
 })
-export class HistoricalPricesComponent implements OnInit {
+export class HistoricalPricesComponent {
+  private cryptoService = inject(CryptoService);
+
   displayedColumns: string[] = ['pair', 'price', 'updatedAt'];
   dataSource: MatTableDataSource<any> = new MatTableDataSource();
 
-  constructor(private cryptoService: CryptoService) {}
+  constructor() {
+    effect(() => {
+      this.fetchHistoricalPrices();
+    });
+  }
 
-  ngOnInit(): void {
+  fetchHistoricalPrices(): void {
     this.cryptoService.getHistoricalPrices().subscribe({
       next: (data) => {
-        // Ensure that data is an array before setting it
         if (Array.isArray(data)) {
           this.dataSource.data = data;
         } else {

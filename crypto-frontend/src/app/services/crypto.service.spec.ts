@@ -29,28 +29,27 @@ describe('CryptoService', () => {
   });
 
   it('should fetch live cryptocurrency prices', () => {
-    const mockResponse = { 'TON/USDT': 2, 'USDT/TON': 0.5 };
+    const mockResponse = { 'TON/USDT': 2 };
 
     service.getLivePrices().subscribe((prices) => {
       expect(prices).toEqual(mockResponse);
     });
 
-    const req = httpMock.expectOne('http://localhost:3000/crypto/prices');
+    const req = httpMock.expectOne('http://localhost:3000/crypto/prices?selectedCurrency=TON/USDT');
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
   });
 
   it('should fetch historical cryptocurrency prices', () => {
     const mockResponse = [
-      { pair: 'TON/USDT', price: 2, updatedAt: '2024-03-19T12:00:00Z' },
-      { pair: 'USDT/TON', price: 0.5, updatedAt: '2024-03-19T12:00:00Z' }
+      { pair: 'TON/USDT', price: 2, updatedAt: '2024-03-19T12:00:00Z' }
     ];
 
     service.getHistoricalPrices().subscribe((history) => {
       expect(history).toEqual(mockResponse);
     });
 
-    const req = httpMock.expectOne('http://localhost:3000/crypto/historical');
+    const req = httpMock.expectOne('http://localhost:3000/crypto/historical?selectedCurrency=TON/USDT');
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
   });
@@ -61,7 +60,7 @@ describe('CryptoService', () => {
       error: (error) => expect(error).toBeTruthy(),
     });
 
-    const req = httpMock.expectOne('http://localhost:3000/crypto/prices');
+    const req = httpMock.expectOne('http://localhost:3000/crypto/prices?selectedCurrency=TON/USDT');
     req.flush('Error', { status: 500, statusText: 'Internal Server Error' });
   });
 
@@ -71,7 +70,7 @@ describe('CryptoService', () => {
       error: (error) => expect(error).toBeTruthy(),
     });
 
-    const req = httpMock.expectOne('http://localhost:3000/crypto/historical');
+    const req = httpMock.expectOne('http://localhost:3000/crypto/historical?selectedCurrency=TON/USDT');
     req.flush('Error', { status: 500, statusText: 'Internal Server Error' });
   });
 });

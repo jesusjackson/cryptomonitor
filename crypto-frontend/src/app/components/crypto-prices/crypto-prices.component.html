@@ -6,8 +6,9 @@
   <mat-card>
     <mat-card-title>Live Cryptocurrency Prices</mat-card-title>
     <mat-card-content *ngIf="priceValues; else loading">
-      <p><strong>TON/USDT:</strong> {{ priceValues['TON/USDT'] | number:'1.2-2' }}</p>
-      <p><strong>USDT/TON:</strong> {{ priceValues['USDT/TON'] | number:'1.2-2' }}</p>
+      @for (pair of Object.keys(priceValues); track pair) {
+        <p><strong>{{ pair }}:</strong> {{ priceValues[pair] | number: '1.2-2' }}</p>
+      }
     </mat-card-content>
 
     <ng-template #loading>

@@ -1,5 +1,10 @@
 <div class="container">
   <h1>Crypto Tracker</h1>
+  <mat-select (selectionChange)="onSelectionChange($event.value)" [value]="this.selectedOption">
+    @for (option of this.currencyOptions; track option){
+      <mat-option [value]="option">{{ option }}</mat-option>
+    }
+  </mat-select>
   <app-crypto-prices></app-crypto-prices>
   <app-historical-prices></app-historical-prices>
 </div>
