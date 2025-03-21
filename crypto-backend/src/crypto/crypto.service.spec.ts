@@ -75,8 +75,8 @@ describe('CryptoService', () => {
 
     jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
 
-    const result = await service.getPrices();
-    expect(result).toEqual({ 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 });
+    const result = await service.getPrices('TON/USDT');
+    expect(result).toEqual({ 'TON/USDT': 3.5 });
   });
 
   it('should store prices in cache', async () => {
@@ -93,15 +93,19 @@ describe('CryptoService', () => {
 
     jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
 
-    await service.getPrices();
-    expect(cacheManager.set).toHaveBeenCalledWith('crypto_prices', { 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 }, 300);
+    await service.getPrices('TON/USDT');
+    expect(cacheManager.set).toHaveBeenCalledWith(
+      'crypto_prices',
+      { 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 },
+      300
+    );
   });
 
   it('should retrieve cached prices if available', async () => {
     cacheManager.get.mockResolvedValue({ 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 });
 
-    const result = await service.getPrices();
-    expect(result).toEqual({ 'TON/USDT': 3.5, 'USDT/TON': 1 / 3.5 });
+    const result = await service.getPrices('TON/USDT');
+    expect(result).toEqual({ 'TON/USDT': 3.5 });
     expect(httpService.get).not.toHaveBeenCalled();
   });
 
@@ -119,7 +123,7 @@ describe('CryptoService', () => {
 
     jest.spyOn(cryptoRepository, 'find').mockResolvedValue(historicalPrices);
 
-    const result = await service.getHistoricalPrices();
+    const result = await service.getHistoricalPrices('TON/USDT');
     expect(result).toEqual(historicalPrices);
   });
 
@@ -137,12 +141,10 @@ describe('CryptoService', () => {
 
     jest.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
 
-    await service.getPrices();
-    expect(cryptoRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tonPrice: 3.5,
-        usdtPrice: 1,
-      }),
-    );
+    await service.getPrices('TON/USDT');
+    expect(cryptoRepository.save).toHaveBeenCalledWith([
+      { pair: 'TON/USDT', price: 3.5 },
+      { pair: 'USDT/TON', price: 1 / 3.5 },
+    ]);
   });
 });

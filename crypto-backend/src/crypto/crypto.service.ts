@@ -18,12 +18,15 @@ export class CryptoService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getPrices() {
+  async getPrices(selectedCurrency: string) {
     const cacheKey = 'crypto_prices';
-    const cachedPrices = await this.cacheManager.get(cacheKey);
+    const cachedPrices = await this.cacheManager.get<Record<string, number>>(cacheKey);
+
     if (cachedPrices) {
       console.log('⚡ Serving prices from cache');
-      return cachedPrices;
+      return {
+        [selectedCurrency]: cachedPrices[selectedCurrency],
+      };
     }
 
     try {
@@ -34,31 +37,34 @@ export class CryptoService {
         )
       );
 
-      let prices;
-      // If CoinGecko doesn't return both tokens, fallback to CoinMarketCap.
+      let prices: Record<string, number>;
+
+      // Fallback to CoinMarketCap if any token is missing
       if (!coingeckoResponse.data.toncoin || !coingeckoResponse.data.tether) {
         console.warn('Missing TON price from CoinGecko, falling back to CoinMarketCap...');
         const coinmarketcapApiKey = this.configService.get<string>('COINMARKETCAP_API_KEY');
         if (!coinmarketcapApiKey) {
           throw new Error('CoinMarketCap API key not provided');
         }
-        const coinmarketcapResponse = await firstValueFrom(
+
+        const cmcResponse = await firstValueFrom(
           this.httpService.get(
             'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=TON,USDT',
-            { headers: { 'X-CMC_PRO_API_KEY': coinmarketcapApiKey } }
+            {
+              headers: { 'X-CMC_PRO_API_KEY': coinmarketcapApiKey },
+            }
           )
         );
-        const data = coinmarketcapResponse.data.data;
+
+        const data = cmcResponse.data.data;
+
         if (
-          !data.TON ||
-          !data.TON.quote ||
-          !data.TON.quote.USD ||
-          !data.USDT ||
-          !data.USDT.quote ||
-          !data.USDT.quote.USD
+          !data.TON?.quote?.USD?.price ||
+          !data.USDT?.quote?.USD?.price
         ) {
           throw new Error('TON price is missing from both APIs');
         }
+
         prices = {
           'TON/USDT': data.TON.quote.USD.price / data.USDT.quote.USD.price,
           'USDT/TON': data.USDT.quote.USD.price / data.TON.quote.USD.price,
@@ -70,22 +76,32 @@ export class CryptoService {
         };
       }
 
-      // Save the fetched prices to the database for historical records
+      // Save both directions to DB for historical purposes
       await this.cryptoRepository.save([
         { pair: 'TON/USDT', price: prices['TON/USDT'] },
         { pair: 'USDT/TON', price: prices['USDT/TON'] },
       ]);
 
-      // Cache the result for 5 minutes (300 seconds)
+      // Cache for 5 minutes
       await this.cacheManager.set(cacheKey, prices, 300);
-      return prices;
+
+      if (!prices[selectedCurrency]) {
+        throw new Error(`Price not available for selected pair: ${selectedCurrency}`);
+      }
+
+      return {
+        [selectedCurrency]: prices[selectedCurrency],
+      };
     } catch (error) {
       console.error('Error fetching cryptocurrency prices:', error.message);
       throw new Error('Failed to fetch cryptocurrency prices');
     }
   }
 
-  async getHistoricalPrices() {
-    return await this.cryptoRepository.find({ order: { updatedAt: 'DESC' } });
+  async getHistoricalPrices(selectedCurrency: string) {
+    return await this.cryptoRepository.find({
+      where: { pair: selectedCurrency },
+      order: { updatedAt: 'DESC' },
+    });
   }
 }

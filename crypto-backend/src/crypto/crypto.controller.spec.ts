@@ -26,19 +26,20 @@ describe('CryptoController', () => {
 
   describe('GET /crypto/prices', () => {
     it('should return live prices', async () => {
-      const mockPrices = { 'TON/USDT': 2, 'USDT/TON': 0.5 };
+      const mockPrices = { 'TON/USDT': 2 };
       cryptoServiceMock.getPrices.mockResolvedValue(mockPrices);
 
-      const result = await controller.getCryptoPrices();
+      const result = await controller.getCryptoPrices('TON/USDT');
 
       expect(result).toEqual(mockPrices);
-      expect(cryptoServiceMock.getPrices).toHaveBeenCalledTimes(1);
+      expect(cryptoServiceMock.getPrices).toHaveBeenCalledWith('TON/USDT');
     });
+
 
     it('should throw an error if service fails', async () => {
       cryptoServiceMock.getPrices.mockRejectedValue(new Error('Service Error'));
 
-      await expect(controller.getCryptoPrices()).rejects.toThrow('Service Error');
+      await expect(controller.getCryptoPrices('TON/USDT')).rejects.toThrow('Service Error');
     });
   });
 
@@ -47,18 +48,20 @@ describe('CryptoController', () => {
       const mockHistory = [
         { id: 1, pair: 'TON/USDT', price: 2, updatedAt: new Date() },
       ];
+
       cryptoServiceMock.getHistoricalPrices.mockResolvedValue(mockHistory);
 
-      const result = await controller.getHistoricalCryptoPrices();
+      const result = await controller.getHistoricalCryptoPrices('TON/USDT');
 
       expect(result).toEqual(mockHistory);
-      expect(cryptoServiceMock.getHistoricalPrices).toHaveBeenCalledTimes(1);
+      expect(cryptoServiceMock.getHistoricalPrices).toHaveBeenCalledWith('TON/USDT');
     });
+
 
     it('should throw an error if service fails', async () => {
       cryptoServiceMock.getHistoricalPrices.mockRejectedValue(new Error('Service Error'));
 
-      await expect(controller.getHistoricalCryptoPrices()).rejects.toThrow('Service Error');
+      await expect(controller.getHistoricalCryptoPrices('TON/USDT')).rejects.toThrow('Service Error');
     });
   });
 });
